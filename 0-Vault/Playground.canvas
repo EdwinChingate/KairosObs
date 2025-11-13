@@ -1,0 +1,248 @@
+{
+  "nodes": [
+    {
+      "id": "b340ecc19076677200",
+      "type": "text",
+      "text": "$00$",
+      "x": 287,
+      "y": 100,
+      "width": 60,
+      "height": 60
+    },
+    {
+      "id": "b340ecc19076677201",
+      "type": "text",
+      "text": "$01$",
+      "x": 287,
+      "y": 280,
+      "width": 60,
+      "height": 60
+    },
+    {
+      "id": "b340ecc19076677202",
+      "type": "text",
+      "text": "$02$",
+      "x": 287,
+      "y": 460,
+      "width": 60,
+      "height": 60
+    },
+    {
+      "id": "b340ecc19076677203",
+      "type": "text",
+      "text": "$03$",
+      "x": 287,
+      "y": 640,
+      "width": 60,
+      "height": 60
+    },
+    {
+      "id": "b340ecc19076677204",
+      "type": "text",
+      "text": "$04$",
+      "x": 287,
+      "y": 820,
+      "width": 60,
+      "height": 60
+    },
+    {
+      "id": "b340ecc19076677205",
+      "type": "text",
+      "text": "$05$",
+      "x": 287,
+      "y": 1000,
+      "width": 60,
+      "height": 60
+    },
+    {
+      "id": "b340ecc19076677206",
+      "type": "text",
+      "text": "$06$",
+      "x": 287,
+      "y": 1180,
+      "width": 60,
+      "height": 60
+    },
+    {
+      "id": "b340ecc19076677207",
+      "type": "text",
+      "text": "$07$",
+      "x": 287,
+      "y": 1360,
+      "width": 60,
+      "height": 60
+    },
+    {
+      "id": "b340ecc19076677208",
+      "type": "text",
+      "text": "$08$",
+      "x": 287,
+      "y": 1540,
+      "width": 60,
+      "height": 60
+    },
+    {
+      "id": "b340ecc19076677209",
+      "type": "text",
+      "text": "$09$",
+      "x": 287,
+      "y": 1720,
+      "width": 60,
+      "height": 60
+    },
+    {
+      "id": "b340ecc19076677210",
+      "type": "text",
+      "text": "$10$",
+      "x": 287,
+      "y": 1900,
+      "width": 60,
+      "height": 60
+    },
+    {
+      "id": "b340ecc19076677211",
+      "type": "text",
+      "text": "$11$",
+      "x": 287,
+      "y": 2080,
+      "width": 60,
+      "height": 60
+    },
+    {
+      "id": "b340ecc19076677212",
+      "type": "text",
+      "text": "$12$",
+      "x": 287,
+      "y": 2260,
+      "width": 60,
+      "height": 60
+    },
+    {
+      "id": "b340ecc19076677213",
+      "type": "text",
+      "text": "$13$",
+      "x": 287,
+      "y": 2440,
+      "width": 60,
+      "height": 60
+    },
+    {
+      "id": "b340ecc19076677214",
+      "type": "text",
+      "text": "$14$",
+      "x": 287,
+      "y": 2620,
+      "width": 60,
+      "height": 60
+    },
+    {
+      "id": "b340ecc19076677215",
+      "type": "text",
+      "text": "$15$",
+      "x": 287,
+      "y": 2800,
+      "width": 60,
+      "height": 60
+    },
+    {
+      "id": "b340ecc19076677216",
+      "type": "text",
+      "text": "$16$",
+      "x": 287,
+      "y": 2980,
+      "width": 60,
+      "height": 60
+    },
+    {
+      "id": "b340ecc19076677217",
+      "type": "text",
+      "text": "$17$",
+      "x": 287,
+      "y": 3160,
+      "width": 60,
+      "height": 60
+    },
+    {
+      "id": "b340ecc19076677218",
+      "type": "text",
+      "text": "$18$",
+      "x": 287,
+      "y": 3340,
+      "width": 60,
+      "height": 60
+    },
+    {
+      "id": "b340ecc19076677219",
+      "type": "text",
+      "text": "$19$",
+      "x": 287,
+      "y": 3520,
+      "width": 60,
+      "height": 60
+    },
+    {
+      "id": "b340ecc19076677220",
+      "type": "text",
+      "text": "$20$",
+      "x": 287,
+      "y": 3700,
+      "width": 60,
+      "height": 60
+    },
+    {
+      "id": "b340ecc19076677221",
+      "type": "text",
+      "text": "$21$",
+      "x": 287,
+      "y": 3880,
+      "width": 60,
+      "height": 60
+    },
+    {
+      "id": "b340ecc19076677222",
+      "type": "text",
+      "text": "$22$",
+      "x": 287,
+      "y": 4060,
+      "width": 60,
+      "height": 60
+    },
+    {
+      "id": "b340ecc19076677223",
+      "type": "text",
+      "text": "$23$",
+      "x": 287,
+      "y": 4240,
+      "width": 60,
+      "height": 60
+    },
+    {
+      "id": "undefined-mht8ke5t",
+      "type": "text",
+      "text": "# DigestingingConsumed\n  [[Planning-P|___12:23_-]] \n  $_{length}$",
+      "x": 60,
+      "y": 2329,
+      "width": 323,
+      "height": 163
+    },
+    {
+      "id": "1-mhv2mm0d",
+      "type": "text",
+      "text": "# Rev\n  [[Planning-P|___16:16_-]] \n  $_{length}$",
+      "x": 1080,
+      "y": 3028,
+      "width": 323,
+      "height": 163
+    },
+    {
+      "id": "2-mhxqqsfh",
+      "type": "text",
+      "text": "# CleanAgenga-LogPlanner\n  [[DigestingingConsumed-400-1936,2025-11-09,07:26,1,3,4,2,1DigestingingConsumed-400-1936,Rev-1080-3028,2025-11-11,16:16,3,4,1,2,2|___13:06_-]] \n  $_{length}$",
+      "x": 1420,
+      "y": 2458,
+      "width": 323,
+      "height": 163
+    }
+  ],
+  "edges": []
+}
