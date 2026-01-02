@@ -2,14 +2,18 @@
 // ---------------------------------------------------------
 // CONFIGURATION
 // ---------------------------------------------------------
-// Point this to the FOLDER containing your daily agenda files
-const AGENDA_FOLDER = "0-Vault/02-Areas/02-Agenda/2025/12-December";
-
-const SCALE = 0.5;        
+const AGENDA_FOLDER = "0-Vault/02-Areas/02-Agenda/2026"; 
 const OFFSET_Y = 100;    
 const PIXELS_PER_MIN = 3;
 const COL_SPACING = 340; 
 const TEXT_HEIGHT_THRESHOLD = 30; 
+
+// State Management
+let state = {
+    scale: 0.5, 
+    currentDate: null,
+    nodes: [] 
+};
 
 // ---------------------------------------------------------
 // CSS STYLES 
@@ -17,21 +21,24 @@ const TEXT_HEIGHT_THRESHOLD = 30;
 const containerStyle = `
   position: relative;
   width: 100%;
-  height: ${1440 * PIXELS_PER_MIN * SCALE}px; 
+  height: 600px; 
   background: var(--background-primary);
   border: 1px solid var(--background-modifier-border);
   border-radius: 8px;
-  overflow: hidden;
+  overflow: auto;
   font-family: var(--font-interface);
   margin-top: 10px;
 `;
 
 const controlStyle = `
   display: flex; 
-  gap: 10px; 
-  margin-bottom: 5px; 
+  gap: 15px; 
+  margin-bottom: 8px; 
   align-items: center;
   font-family: var(--font-interface);
+  background: var(--background-secondary);
+  padding: 8px;
+  border-radius: 8px;
 `;
 
 const gridLineStyle = `
@@ -54,14 +61,14 @@ const timeLabelStyle = `
 
 const blockStyle = (y, h, color, colIndex) => `
   position: absolute;
-  left: ${(colIndex * COL_SPACING * SCALE) + 60}px; 
-  top: ${(y - OFFSET_Y) * SCALE}px;
-  width: ${320 * SCALE}px;
-  height: ${h * SCALE}px;
+  left: ${(colIndex * COL_SPACING * state.scale) + 60}px; 
+  top: ${(y - OFFSET_Y) * state.scale}px;
+  width: ${320 * state.scale}px;
+  height: ${h * state.scale}px;
   background-color: ${color}33; 
   border-left: 3px solid ${color};
   padding: 4px;
-  font-size: ${12 * (SCALE < 0.6 ? 0.8 : 1)}px;
+  font-size: ${12 * (state.scale < 0.6 ? 0.8 : 1)}px;
   overflow: hidden;
   border-radius: 4px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
@@ -82,9 +89,10 @@ function minutesToTime(totalMins) {
 }
 
 function parseTime(str) {
-    if (!str || str.includes("<")) return null; 
-    const parts = str.split(":");
-    return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+    if (!str) return null;
+    const match = str.match(/(\d{1,2}):(\d{2})/);
+    if (!match) return null; 
+    return parseInt(match[1]) * 60 + parseInt(match[2]);
 }
 
 // ---------------------------------------------------------
@@ -92,108 +100,162 @@ function parseTime(str) {
 // ---------------------------------------------------------
 const mainContainer = this.container.createEl("div");
 
-// 1. Controls (Dropdown)
+// Controls
 const controls = mainContainer.createEl("div");
 controls.style.cssText = controlStyle;
-const fileSelector = controls.createEl("select");
-fileSelector.style.padding = "4px";
-fileSelector.style.fontSize = "14px";
-fileSelector.style.maxWidth = "300px";
 
-// 2. Viewport (Grid + Blocks)
+const dateSelector = controls.createEl("select");
+dateSelector.style.padding = "4px";
+dateSelector.style.fontSize = "14px";
+dateSelector.style.maxWidth = "200px";
+
+controls.createEl("span", { text: "Zoom:" }).style.fontSize = "12px";
+
+const zoomSlider = controls.createEl("input");
+zoomSlider.type = "range";
+zoomSlider.min = "0.2";
+zoomSlider.max = "1.5";
+zoomSlider.step = "0.05";
+zoomSlider.value = state.scale;
+zoomSlider.style.width = "150px";
+zoomSlider.style.cursor = "pointer";
+
+// Viewport
 const viewport = mainContainer.createEl("div");
 viewport.style.cssText = containerStyle;
 
-// 3. Draw Static Grid (Once)
-for (let h = 0; h < 24; h++) {
-    const mins = h * 60;
-    const y = mins * PIXELS_PER_MIN; 
-    
-    const line = viewport.createEl("div");
-    line.style.cssText = gridLineStyle;
-    line.style.top = `${y * SCALE}px`;
-
-    const label = viewport.createEl("div", {text: `${h}:00`});
-    label.style.cssText = timeLabelStyle;
-    label.style.top = `${y * SCALE}px`;
-}
-
-// 4. Current Time Line (Static layer, updated visually if needed but position is fixed to NOW)
-const now = new Date();
-const nowMins = now.getHours() * 60 + now.getMinutes();
-const nowY = nowMins * PIXELS_PER_MIN;
-const nowLine = viewport.createEl("div");
-nowLine.style.cssText = `
-    position: absolute; left: 50px; right: 0; 
-    top: ${nowY * SCALE}px; border-top: 2px solid red; z-index: 10; pointer-events: none;
-`;
-
-// 5. Container for Dynamic Blocks
-const blockLayer = viewport.createEl("div");
-blockLayer.style.position = "absolute";
-blockLayer.style.inset = "0";
-blockLayer.style.zIndex = "5";
-
 // ---------------------------------------------------------
-// CORE LOGIC
+// LOGIC: Data Processing (The "Latest Entry" Logic)
 // ---------------------------------------------------------
-async function renderAgenda(file) {
-    // Clear previous blocks
-    blockLayer.empty();
-    
-    if(!file) return;
-    
-    const content = await app.vault.read(file);
+async function loadDataForDate(dateStr) {
+    state.currentDate = dateStr;
+    state.nodes = []; 
 
-    // --- PARSE ---
-    const tableRegex = /\|\s*\d+\s*\|\s*(.*?)\s*\|\s*(\d{2}:\d{2}|<.*?>)\s*\|\s*(\d{2}:\d{2}|<.*?>)\s*\|/g;
-    let match;
-    const nodes = [];
+    const folder = app.vault.getAbstractFileByPath(AGENDA_FOLDER);
+    if (!folder || !folder.children) return;
 
-    while ((match = tableRegex.exec(content)) !== null) {
-        const activityRaw = match[1].trim();
-        const startStr = match[2];
-        const endStr = match[3];
+    // 1. Identify ALL relevant files
+    const files = folder.children.filter(f => 
+        f.extension === 'md' && f.name.includes(dateStr)
+    );
+    if (files.length === 0) return;
 
-        const startMins = parseTime(startStr);
-        let endMins = parseTime(endStr);
+    // 2. Data Collection (Gather all candidates)
+    // Key: ActID, Value: Array of { data, timestamp, source }
+    const candidates = new Map();
 
-        // Ongoing Logic
-        if (startMins !== null && endMins === null && endStr.includes("<")) {
-            // Check if this file is actually "Today", otherwise ongoing logic might be weird for past dates
-            // But usually safe to assume open end means "until now" or "undefined duration"
-            const now = new Date();
-            const currentMins = now.getHours() * 60 + now.getMinutes();
-            if (startMins < currentMins) {
-                 endMins = Math.max(currentMins, startMins + 30);
+    // Regex for Standard Agenda
+    const regexAgenda = /\|\s*(\d+)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|/;
+    // Regex for EdLog: | LogID | ActID | Date | Time | Activity | Start | End |
+    const regexLog = /\|\s*\d+\s*\|\s*(\d+)\s*\|\s*(\d{4}-\d{2}-\d{2})\s*\|\s*(\d{2}:\d{2})\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|/;
+
+    for (const file of files) {
+        const isLog = file.name.includes("EdLog");
+        const isMobile = file.name.includes("_m") || file.name.includes("Mobile");
+        const content = await app.vault.read(file);
+        const lines = content.split('\n');
+
+        for (const line of lines) {
+            let actId, activityRaw, startStr, endStr, timestamp;
+            
+            if (isLog) {
+                const match = regexLog.exec(line);
+                if (!match) continue;
+                actId = match[1].trim();
+                const datePart = match[2];
+                const timePart = match[3];
+                activityRaw = match[4].trim();
+                startStr = match[5].trim();
+                endStr = match[6].trim();
+                
+                // Create Unix Timestamp for comparison
+                timestamp = new Date(`${datePart}T${timePart}`).getTime();
+            } else {
+                const match = regexAgenda.exec(line);
+                if (!match) continue;
+                actId = match[1].trim();
+                activityRaw = match[2].trim();
+                startStr = match[3].trim();
+                endStr = match[4].trim();
+                
+                // Agenda files have no row-level timestamp, assign 0 (Baseline)
+                timestamp = 0;
             }
-        }
 
-        if (startMins !== null && endMins !== null) {
-            const duration = endMins - startMins;
+            const startMins = parseTime(startStr);
+            const endMins = parseTime(endStr);
+
+            // Clean Title
             const displayTitle = activityRaw
                 .replace(/\[\[.*?\|(.*?)\]\]/, '$1') 
                 .replace(/\[\[(.*?)\]\]/, '$1') 
                 .replace(/^[#\s]+/, '')
                 .replace(/<.*?>/, '???'); 
 
-            if (duration > 0) {
-                nodes.push({
+            if (startMins !== null) {
+                if (!candidates.has(actId)) candidates.set(actId, []);
+                candidates.get(actId).push({
+                    id: actId,
                     text: displayTitle,
-                    y: (startMins * PIXELS_PER_MIN) + OFFSET_Y, 
-                    height: duration * PIXELS_PER_MIN,
-                    color: "#54B5FB", 
-                    colIndex: 0 
+                    startMins: startMins,
+                    endMins: endMins,
+                    timestamp: timestamp,
+                    source: isLog ? "Log" : (isMobile ? "Mobile" : "Desktop"),
+                    file: file
                 });
             }
         }
     }
 
-    // --- DISTRIBUTE (Max Gap) ---
-    nodes.sort((a, b) => a.y - b.y);
+    // 3. Conflict Resolution (Pick the Winner)
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10);
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+
+    candidates.forEach((entries, actId) => {
+        // Sort Descending by Timestamp
+        entries.sort((a, b) => b.timestamp - a.timestamp);
+        
+        // The winner is the first one (Latest)
+        const winner = entries[0];
+        
+        let finalEnd = winner.endMins;
+
+        // Ongoing Logic (Applied to the Winner)
+        if (finalEnd === null) {
+            if (dateStr === todayStr && winner.startMins < currentMins) {
+                finalEnd = Math.max(currentMins, winner.startMins + 30);
+            } else {
+                finalEnd = winner.startMins + 60; // Future default
+            }
+        }
+
+        const duration = finalEnd - winner.startMins;
+
+        if (duration > 0) {
+            // Color Coding Source
+            let blockColor = "#54B5FB"; // Default Blue (Desktop/Agenda)
+            if (winner.source === "Log") blockColor = "#FFB86C"; // Orange (Log Override)
+            else if (winner.source === "Mobile") blockColor = "#bd93f9"; // Purple (Mobile Agenda)
+
+            state.nodes.push({
+                id: winner.id,
+                text: winner.text,
+                y: (winner.startMins * PIXELS_PER_MIN) + OFFSET_Y,
+                height: duration * PIXELS_PER_MIN,
+                color: blockColor,
+                colIndex: 0,
+                sourceFile: winner.file,
+                sourceType: winner.source
+            });
+        }
+    });
+
+    // 4. Distribute Columns (Max Gap)
+    state.nodes.sort((a, b) => a.y - b.y);
     const colEnds = [0, 0, 0, 0]; 
 
-    nodes.forEach(node => {
+    state.nodes.forEach(node => {
         let bestCol = 0;
         let maxGap = -1;
         let foundValid = false;
@@ -201,36 +263,68 @@ async function renderAgenda(file) {
         for(let i=0; i<4; i++) {
             if (node.y >= colEnds[i] - 5) {
                 const gap = node.y - colEnds[i];
-                if (gap > maxGap) {
-                    maxGap = gap;
-                    bestCol = i;
-                    foundValid = true;
-                }
+                if (gap > maxGap) { maxGap = gap; bestCol = i; foundValid = true; }
             }
         }
 
         if (!foundValid) {
             let minEnd = colEnds[0];
-            for(let i=1; i<4; i++) {
-                if(colEnds[i] < minEnd) {
-                    minEnd = colEnds[i];
-                    bestCol = i;
-                }
-            }
+            for(let i=1; i<4; i++) { if(colEnds[i] < minEnd) { minEnd = colEnds[i]; bestCol = i; } }
         }
-
         node.colIndex = bestCol;
         colEnds[bestCol] = node.y + node.height;
     });
 
-    // --- RENDER BLOCKS ---
-    nodes.forEach(node => {
-        const renderHeight = node.height * SCALE;
-        const block = blockLayer.createEl("div");
-        block.style.cssText = blockStyle(node.y, node.height, node.color, node.colIndex);
-        block.title = node.text; 
+    drawView(); 
+}
 
-        // Time calculations
+// ---------------------------------------------------------
+// LOGIC: Drawing
+// ---------------------------------------------------------
+function drawView() {
+    viewport.empty();
+    
+    const totalHeight = 1440 * PIXELS_PER_MIN * state.scale;
+    const contentWrapper = viewport.createEl("div");
+    contentWrapper.style.height = `${totalHeight}px`;
+    contentWrapper.style.position = "relative";
+    contentWrapper.style.minWidth = `${(4 * COL_SPACING * state.scale) + 100}px`; 
+
+    // Grid
+    for (let h = 0; h < 24; h++) {
+        const mins = h * 60;
+        const y = mins * PIXELS_PER_MIN; 
+        
+        const line = contentWrapper.createEl("div");
+        line.style.cssText = gridLineStyle;
+        line.style.top = `${y * state.scale}px`;
+
+        const label = contentWrapper.createEl("div", {text: `${h}:00`});
+        label.style.cssText = timeLabelStyle;
+        label.style.top = `${y * state.scale}px`;
+    }
+
+    // Now Line
+    const now = new Date();
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    const nowY = nowMins * PIXELS_PER_MIN;
+    const nowLine = contentWrapper.createEl("div");
+    nowLine.style.cssText = `
+        position: absolute; left: 50px; right: 0; 
+        top: ${nowY * state.scale}px; border-top: 2px solid red; z-index: 10; pointer-events: none;
+    `;
+
+    // Nodes
+    if (state.nodes.length === 0) {
+        contentWrapper.createEl("div", {text: "No activities found."}).style.padding = "50px";
+    }
+
+    state.nodes.forEach(node => {
+        const renderHeight = node.height * state.scale;
+        const block = contentWrapper.createEl("div");
+        block.style.cssText = blockStyle(node.y, node.height, node.color, node.colIndex);
+        block.title = `${node.text} (Source: ${node.sourceType})`;
+
         const startMins = (node.y - OFFSET_Y) / PIXELS_PER_MIN;
         const durationMins = node.height / PIXELS_PER_MIN;
         const endMins = startMins + durationMins;
@@ -251,7 +345,7 @@ async function renderAgenda(file) {
         block.style.cursor = "pointer";
         block.onclick = async () => {
             const leaf = app.workspace.getLeaf('tab');
-            await leaf.openFile(file);
+            await leaf.openFile(node.sourceFile);
         };
     });
 }
@@ -260,47 +354,42 @@ async function renderAgenda(file) {
 // INITIALIZATION
 // ---------------------------------------------------------
 (async () => {
-    // 1. Get files from folder
     const folder = app.vault.getAbstractFileByPath(AGENDA_FOLDER);
     if (!folder || !folder.children) {
-        controls.createEl("div", {text: `Folder not found: ${AGENDA_FOLDER}`, color: 'red'});
+        viewport.createEl("div", {text: `Folder not found: ${AGENDA_FOLDER}`, color: 'red'});
         return;
     }
 
-    // Filter Markdown files & Sort (Newest first)
-    const files = folder.children
-        .filter(f => f.extension === 'md')
-        .sort((a, b) => b.name.localeCompare(a.name)); // Descending name sort (usually date)
+    // Extract Dates
+    const dateSet = new Set();
+    const dateRegex = /\d{4}-\d{2}-\d{2}/;
+    folder.children.forEach(f => {
+        if (f.extension !== 'md') return;
+        const m = f.name.match(dateRegex);
+        if (m) dateSet.add(m[0]);
+    });
+    const sortedDates = Array.from(dateSet).sort().reverse();
 
-    // 2. Populate Dropdown
-    const todayStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-    let defaultFile = files[0]; // Default to newest if today not found
+    // Controls
+    const todayStr = new Date().toISOString().slice(0, 10); 
+    let defaultDate = sortedDates[0]; 
 
-    files.forEach(f => {
-        const opt = fileSelector.createEl("option");
-        opt.value = f.path;
-        opt.text = f.name.replace(".md", "");
-        
-        // Select today if name contains YYYY-MM-DD
-        if (f.name.includes(todayStr)) {
-            opt.selected = true;
-            defaultFile = f;
-        }
+    sortedDates.forEach(dateStr => {
+        const opt = dateSelector.createEl("option");
+        opt.value = dateStr;
+        opt.text = dateStr;
+        if (dateStr === todayStr) { opt.selected = true; defaultDate = dateStr; }
     });
 
-    // 3. Event Listener
-    fileSelector.addEventListener("change", async (e) => {
-        const selectedPath = e.target.value;
-        const selectedFile = app.vault.getAbstractFileByPath(selectedPath);
-        await renderAgenda(selectedFile);
+    dateSelector.addEventListener("change", (e) => loadDataForDate(e.target.value));
+    zoomSlider.addEventListener("input", (e) => {
+        state.scale = parseFloat(e.target.value);
+        drawView();
     });
 
-    // 4. Initial Render
-    if (defaultFile) {
-        // Ensure dropdown matches default (if we forced it via logic vs option attribute)
-        fileSelector.value = defaultFile.path; 
-        await renderAgenda(defaultFile);
+    if (defaultDate) {
+        dateSelector.value = defaultDate; 
+        loadDataForDate(defaultDate);
     }
 })();
 ```
-| 1 | Planning | 13:28 | - | Active |
