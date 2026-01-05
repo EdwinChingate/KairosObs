@@ -1,8 +1,6 @@
-## Comprehensive Analysis Report — Planner_11_5 Prototype (2026‑01‑04)
-
 ### 1. Overview
 
-The **Planner_11_5** prototype represents the most integrated and feature‑complete iteration of the Planner system. It consolidates multiple prior experiments—calendar visualization, mobile adaptation, unified file logging, and contextual suggestion panels—into a cohesive, highly interactive journaling and time‑tracking environment designed to operate inside Obsidian.
+The **Kairos** prototype represents the most integrated and feature‑complete iteration of the Planner system. It consolidates multiple prior experiments—calendar visualization, mobile adaptation, unified file logging, and contextual suggestion panels—into a cohesive, highly interactive journaling and time‑tracking environment designed to operate inside Obsidian.
 
 The system functions as a **temporal and cognitive companion**, combining:
 
