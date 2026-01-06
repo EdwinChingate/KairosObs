@@ -1,6 +1,5 @@
 ```dataviewjs
 /********************************************************************
-* Planner_6_16 — Mobile Stability & Deferred Refresh
 ********************************************************************/
 const { MarkdownRenderer } = require("obsidian");
 
